@@ -6,6 +6,9 @@ on:
     - cron: '30 3 * * *'
   workflow_dispatch:  # Allow manual triggering
 
+permissions:
+  contents: write  # Allow workflow to push commits
+
 jobs:
   run-indian-news-pipeline:
     runs-on: ubuntu-latest
