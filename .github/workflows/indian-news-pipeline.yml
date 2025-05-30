@@ -54,8 +54,8 @@ jobs:
         
     - name: Commit and push log updates
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.email "prvn012@gmail.com"
+        git config --local user.name "Praveen Kumar Garlapati"
         
         # Add the logs directory and any changes
         git add logs/pipeline.log
