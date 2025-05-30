@@ -1,0 +1,78 @@
+name: Indian News Pipeline
+
+on:
+  schedule:
+    # Run daily at 9:00 AM IST (3:30 UTC)
+    - cron: '30 3 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  run-indian-news-pipeline:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create logs directory
+      run: |
+        mkdir -p logs
+        
+    - name: Run Indian news pipeline
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+        SUPARBASE_DATA_PIP_PROJECT_URL: ${{ secrets.SUPARBASE_DATA_PIP_PROJECT_URL }}
+        SUPABASE_DATA_PIP_KEY: ${{ secrets.SUPABASE_DATA_PIP_KEY }}
+      run: |
+        # Run the pipeline and capture output
+        timestamp=$(date '+%Y-%m-%d %H:%M:%S UTC')
+        echo "[$timestamp] Starting Indian News Pipeline..." | tee -a logs/pipeline.log
+        
+        if python src/indian_news_pipeline.py; then
+          echo "[$timestamp] ✅ Indian News Pipeline completed successfully!" | tee -a logs/pipeline.log
+          echo "[$timestamp] Pipeline execution finished with success status" | tee -a logs/pipeline.log
+          echo "" | tee -a logs/pipeline.log
+        else
+          echo "[$timestamp] ❌ Indian News Pipeline failed!" | tee -a logs/pipeline.log
+          echo "[$timestamp] Pipeline execution finished with error status" | tee -a logs/pipeline.log
+          echo "" | tee -a logs/pipeline.log
+          exit 1
+        fi
+        
+    - name: Commit and push log updates
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Add the logs directory and any changes
+        git add logs/pipeline.log
+        
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+          git commit -m "📰 Auto-update: Indian News Pipeline run at $timestamp"
+          git push
+        fi
+        
+    - name: Upload logs as artifact
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: pipeline-logs
+        path: logs/
+        retention-days: 30 
