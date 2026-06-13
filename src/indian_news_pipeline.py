@@ -14,7 +14,9 @@ Requirements:
 """
 
 import os
+import sys
 import json
+import random
 import requests
 import logging
 import traceback
@@ -308,6 +310,25 @@ class IndianNewsProcessor:
 
 def main():
     """Main execution function"""
+    # Configure stdout/stderr to support unicode emojis on all platforms (e.g. Windows console)
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
+    if hasattr(sys.stderr, 'reconfigure'):
+        try:
+            sys.stderr.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
+
+    # Random execution check: pick a number between 1 and 15
+    check_num = random.randint(1, 15)
+    print(f"Random check: generated {check_num}")
+    if check_num % 3 != 0:
+        print("Number is not divisible by 3. Skipping today's run.")
+        sys.exit(2)  # Exit code 2 indicates that the run was skipped
+        
     try:
         processor = IndianNewsProcessor()
         success = processor.run_pipeline()
@@ -316,10 +337,12 @@ def main():
             print("✅ Indian News Pipeline completed successfully!")
         else:
             print("❌ Indian News Pipeline failed!")
+            sys.exit(1)
             
     except Exception as e:
         print(f"❌ Failed to initialize pipeline: {str(e)}")
         logger.error(f"Initialization error: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main() 

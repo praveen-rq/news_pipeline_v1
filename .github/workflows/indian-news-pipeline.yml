@@ -3,7 +3,7 @@ name: Indian News Pipeline
 on:
   schedule:
     # Run daily at 9:00 AM IST (3:30 UTC)
-    - cron: '30 3 * * 1,3,5,6'   
+    - cron: '30 3 * * *'
   workflow_dispatch:  # Allow manual triggering
 
 permissions:
@@ -40,15 +40,18 @@ jobs:
         SUPARBASE_DATA_PIP_PROJECT_URL: ${{ secrets.SUPARBASE_DATA_PIP_PROJECT_URL }}
         SUPABASE_DATA_PIP_KEY: ${{ secrets.SUPABASE_DATA_PIP_KEY }}
       run: |
-        # Run the pipeline and capture output
-        timestamp=$(date '+%Y-%m-%d %H:%M:%S UTC')
-        echo "[$timestamp] Starting Indian News Pipeline..." | tee -a logs/pipeline.log
-        
-        if python src/indian_news_pipeline.py; then
+        python src/indian_news_pipeline.py
+        exit_code=$?
+        if [ $exit_code -eq 0 ]; then
+          timestamp=$(date '+%Y-%m-%d %H:%M:%S UTC')
           echo "[$timestamp] ✅ Indian News Pipeline completed successfully!" | tee -a logs/pipeline.log
           echo "[$timestamp] Pipeline execution finished with success status" | tee -a logs/pipeline.log
           echo "" | tee -a logs/pipeline.log
+        elif [ $exit_code -eq 2 ]; then
+          echo "Pipeline run skipped today (random check)."
+          echo "SKIP_COMMIT=true" >> $GITHUB_ENV
         else
+          timestamp=$(date '+%Y-%m-%d %H:%M:%S UTC')
           echo "[$timestamp] ❌ Indian News Pipeline failed!" | tee -a logs/pipeline.log
           echo "[$timestamp] Pipeline execution finished with error status" | tee -a logs/pipeline.log
           echo "" | tee -a logs/pipeline.log
@@ -56,6 +59,7 @@ jobs:
         fi
         
     - name: Commit and push log updates
+      if: env.SKIP_COMMIT != 'true'
       run: |
         git config --local user.email "prvn012@gmail.com"
         git config --local user.name "Praveen Kumar Garlapati"
@@ -73,7 +77,7 @@ jobs:
         fi
         
     - name: Upload logs as artifact
-      if: always()
+      if: always() && env.SKIP_COMMIT != 'true'
       uses: actions/upload-artifact@v4
       with:
         name: pipeline-logs
